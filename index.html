@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Eye Muscle Depth Oasis</title>
+    <title>4D Spiral Eye Muscle Oasis</title>
     <style>
         :root { --bg-color: #000; --container-bg: #111; --text-main: #FFF; --text-muted: #777; --accent-line: #FFF; --accent-glow: rgba(255,255,255,0.15); --border-ui: #444; }
         .theme-amethyst { --bg-color: #0f0b19; --container-bg: #161125; --text-main: #f3e8ff; --text-muted: #7c3aed; --accent-line: #a855f7; --accent-glow: rgba(168,85,247,0.2); --border-ui: #4c1d95; }
@@ -13,7 +13,7 @@
         .p-desc { font-size:0.8rem; color:var(--text-muted); margin-bottom:1.5rem; line-height:1.4; }
         .control-group { margin-bottom:1rem; text-align:left; }
         label { font-size:0.75rem; letter-spacing:1px; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:0.4rem; }
-        select, input { background:var(--bg-color); border:1px solid var(--border-ui); color:var(--text-main); padding:0.6rem; font-size:0.9rem; border-radius:8px; outline:none; width:100%; box-sizing:border-box; }
+        select, input { background:var(--bg-color); border:1px solid var(--border-ui); color:var(--text-main); padding:0.6rem; font-size:0.9rem; border-radius:8px; outline:none; width:100%; box-sizing:border-box; transition:all 0.3s; }
         .canvas-container { position:relative; width:280px; height:280px; margin:1.5rem auto; }
         canvas { background:var(--bg-color); border-radius:16px; border:1px solid var(--border-ui); }
         .instruction-box { position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); pointer-events:none; }
@@ -29,17 +29,17 @@
     <div class="container">
         <div id="authGate" class="gate-screen">
             <h2 style="font-weight:300; letter-spacing:3px; color:#64748b; font-size:1.1rem;">VISION ACCESS GATE</h2>
-            <p style="font-size:0.8rem; color:#475569; margin-bottom:1.5rem; line-height:1.4;">Please enter your personal license key found inside your Etsy purchase manual to unlock your 3D Eye Yoga setup.</p>
+            <p style="font-size:0.8rem; color:#475569; margin-bottom:1.5rem; line-height:1.4;">Please enter your personal license key found inside your Etsy purchase manual to unlock your 4D Spiral Eye Yoga setup.</p>
             <input type="password" id="passKey" placeholder="Enter License Key..." style="text-align:center; margin-bottom:1rem;">
             <button id="unlockBtn" style="background:#FFF; color:#000; font-weight:bold; width:100%;">VERIFY ACCESS</button>
             <div id="gateError" style="color:#ef4444; font-size:0.85rem; margin-top:1rem; visibility:hidden;">Invalid Key. Check spelling.</div>
             <a href="https://etsy.com" target="_blank" class="etsy-link">🛍️ Get Access Key at Our Etsy Shop</a>
         </div>
         <div id="appInterface" style="opacity:0.1; pointer-events:none;">
-            <h1>3D EYE FOCUS RESET</h1>
-            <p class="p-desc">Keep your head still. Track the target zooming near and far to actively flex your inner lens muscles.</p>
+            <h1>4D SPIRAL TRACKING</h1>
+            <p class="p-desc">Keep your head locked completely still. Track the target as it spirals to the outer edges while zooming near and far.</p>
             <div class="control-group"><label for="themeSelect">Visual Palette</label><select id="themeSelect"><option value="bw">Minimalist Black & White</option><option value="amethyst">Amethyst Vision</option></select></div>
-            <div class="control-group"><label for="speedSlider">Zoom Speed</label><input type="range" id="speedSlider" min="1" max="5" value="2"></div>
+            <div class="control-group"><label for="speedSlider">Tracking Speed</label><input type="range" id="speedSlider" min="1" max="5" value="2"></div>
             <div class="canvas-container"><canvas id="visualizer" width="280" height="280"></canvas><div class="instruction-box"><div id="instruction" class="instruction">TAP START</div></div></div>
             <div class="controls-row"><button id="playBtn">START</button><button id="soundBtn">SOUND: OFF</button></div>
         </div>
@@ -54,14 +54,15 @@
         themeSelect.addEventListener('change',(e)=>{document.body.className='theme-'+e.target.value;});
         playBtn.addEventListener('click',()=>{isRunning=!isRunning;if(isRunning){playBtn.innerText="PAUSE";playBtn.classList.add('active');startAudioEngine();if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();animate();}else{playBtn.innerText="START";playBtn.classList.remove('active');instructionText.innerText="PAUSED";instructionText.style.color="";cancelAnimationFrame(animationId);stopAudioEngine();}});
         soundBtn.addEventListener('click',()=>{isSoundOn=!isSoundOn;soundBtn.innerText=isSoundOn?"SOUND: ON":"SOUND: OFF";if(isSoundOn){soundBtn.classList.add('active');if(isRunning&&!audioCtx)startAudioEngine();}else{soundBtn.classList.remove('active');if(gainNode&&audioCtx)gainNode.gain.setTargetAtTime(0,audioCtx.currentTime,0.05);}});
-        function animate(){if(!isRunning)return;const currentStyles=getComputedStyle(document.body),lineColor=currentStyles.getPropertyValue('--accent-line').trim(),glowColor=currentStyles.getPropertyValue('--accent-glow').trim(),frameColor=currentStyles.getPropertyValue('--border-ui').trim();ctx.clearRect(0,0,canvas.width,canvas.height);t+=parseFloat(speedSlider.value)*0.008;
-        const depth=0.5+Math.sin(t)*0.5,currentRadius=4+(depth*75),currentOpacity=0.15+(depth*0.85);let actionText="Focusing...";
-        if(Math.sin(t)>0.1){actionText="Zooming Near";instructionText.style.color=lineColor;}else if(Math.sin(t)<-0.1){actionText="Zooming Far";instructionText.style.color=currentStyles.getPropertyValue('--text-muted').trim();}else{actionText="Shifting...";}instructionText.innerText=actionText;
-        if(isSoundOn&&gainNode&&audioCtx){gainNode.gain.setTargetAtTime(0.05+(depth*0.35),audioCtx.currentTime,0.02);oscillator.frequency.setTargetAtTime(90+(depth*60),audioCtx.currentTime,0.02);}
-        ctx.strokeStyle=frameColor;ctx.lineWidth=1;ctx.beginPath();ctx.arc(center,center,80,0,Math.PI*2);ctx.stroke();ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(center-90,center);ctx.lineTo(center+90,center);ctx.moveTo(center,center-90);ctx.lineTo(center,center+90);ctx.stroke();
-        ctx.fillStyle=themeSelect.value==='bw'?'rgba(255,255,255,'+(currentOpacity*0.25)+')':'rgba(168,85,247,'+(currentOpacity*0.25)+')';ctx.beginPath();ctx.arc(center,center,currentRadius+12,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle=themeSelect.value==='bw'?'rgba(255,255,255,'+currentOpacity+')':'rgba(168,85,247,'+currentOpacity+')';ctx.beginPath();ctx.arc(center,center,currentRadius,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle=lineColor;ctx.beginPath();ctx.arc(center,center,4,0,Math.PI*2);ctx.fill();animationId=requestAnimationFrame(animate);}
+        function animate(){if(!isRunning)return;const currentStyles=getComputedStyle(document.body),lineColor=currentStyles.getPropertyValue('--accent-line').trim(),glowColor=currentStyles.getPropertyValue('--accent-glow').trim(),frameColor=currentStyles.getPropertyValue('--border-ui').trim();ctx.clearRect(0,0,canvas.width,canvas.height);t+=parseFloat(speedSlider.value)*0.005;
+        const orbitRadius=10+(Math.abs(Math.sin(t*0.25))*110),targetX=center+Math.cos(t)*orbitRadius,targetY=center+Math.sin(t)*orbitRadius;
+        const depth=0.5+Math.sin(t*2)*0.5,currentRadius=4+(depth*55),currentOpacity=0.2+(depth*0.8);let actionText="Tracking...";
+        if(orbitRadius>85){actionText="Outer Range Stretch";instructionText.style.color=lineColor;}else{actionText="Inner Lens Focus";instructionText.style.color=currentStyles.getPropertyValue('--text-muted').trim();}instructionText.innerText=actionText;
+        if(isSoundOn&&gainNode&&audioCtx){gainNode.gain.setTargetAtTime(0.04+(depth*0.25),audioCtx.currentTime,0.02);oscillator.frequency.setTargetAtTime(80+(orbitRadius*0.8),audioCtx.currentTime,0.02);}
+        ctx.strokeStyle=frameColor;ctx.lineWidth=0.5;ctx.beginPath();for(let r=30;r<=120;r+=30){ctx.arc(center,center,r,0,Math.PI*2);}ctx.stroke();ctx.beginPath();ctx.moveTo(center-130,center);ctx.lineTo(center+130,center);ctx.moveTo(center,center-130);ctx.lineTo(center,center-130);ctx.moveTo(center,center-130);ctx.lineTo(center,center+130);ctx.stroke();
+        ctx.fillStyle=themeSelect.value==='bw'?'rgba(255,255,255,'+(currentOpacity*0.25)+')':'rgba(168,85,247,'+(currentOpacity*0.25)+')';ctx.beginPath();ctx.arc(targetX,targetY,currentRadius+10,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=themeSelect.value==='bw'?'rgba(255,255,255,'+currentOpacity+')':'rgba(168,85,247,'+currentOpacity+')';ctx.beginPath();ctx.arc(targetX,targetY,currentRadius,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=lineColor;ctx.beginPath();ctx.arc(targetX,targetY,3,0,Math.PI*2);ctx.fill();animationId=requestAnimationFrame(animate);}
     </script>
 </body>
 </html>
