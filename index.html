@@ -1,372 +1,61 @@
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eye Muscle Recovery Oasis</title>
+    <style>
+        :root { --bg-color: #000; --container-bg: #111; --text-main: #FFF; --text-muted: #77; --accent-line: #FFF; --accent-glow: rgba(255,255,255,0.15); --border-ui: #444; }
+        .theme-amethyst { --bg-color: #0f0b19; --container-bg: #161125; --text-main: #f3e8ff; --text-muted: #7c3aed; --accent-line: #a855f7; --accent-glow: rgba(168,85,247,0.2); --border-ui: #4c1d95; }
+        body { margin:0; background:var(--bg-color); color:var(--text-main); font-family:sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; overflow:hidden; transition:all 0.5s; }
+        .container { text-align:center; position:relative; width:90%; max-width:400px; background:var(--container-bg); padding:2rem; border-radius:24px; border:1px solid var(--border-ui); }
+        h1 { font-size:1.2rem; font-weight:300; letter-spacing:3px; margin-bottom:1.5rem; }
+        .p-desc { font-size:0.8rem; color:var(--text-muted); margin-bottom:1.5rem; line-height:1.4; }
+        .control-group { margin-bottom:1rem; text-align:left; }
+        label { font-size:0.75rem; letter-spacing:1px; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:0.4rem; }
+        select, input { background:var(--bg-color); border:1px solid var(--border-ui); color:var(--text-main); padding:0.6rem; font-size:0.9rem; border-radius:8px; outline:none; width:100%; box-sizing:border-box; }
+        .canvas-container { position:relative; width:280px; height:280px; margin:1.5rem auto; }
+        canvas { background:var(--bg-color); border-radius:16px; border:1px solid var(--border-ui); }
+        .instruction-box { position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); pointer-events:none; }
+        .instruction { font-size:0.9rem; text-transform:uppercase; color:var(--text-muted); }
+        .controls-row { margin-top:1.5rem; display:flex; gap:12px; }
+        button { background:transparent; border:1px solid var(--border-ui); color:var(--text-main); padding:0.7rem 1.2rem; font-size:0.85rem; border-radius:20px; cursor:pointer; flex:1; }
+        button.active { background:var(--text-main); color:var(--bg-color); font-weight:bold; }
+        .gate-screen { position:absolute; top:0; left:0; width:100%; height:100%; background:#090d16; border-radius:24px; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100; padding:2rem; box-sizing:border-box; }
+        .etsy-link { display:inline-block; margin-top:1.5rem; font-size:0.8rem; color:#ffa500; text-decoration:none; border:1px dashed #ffa500; padding:0.5rem 1rem; border-radius:15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="authGate" class="gate-screen">
+            <h2 style="font-weight:300; letter-spacing:3px; color:#64748b; font-size:1.1rem;">VISION ACCESS GATE</h2>
+            <p style="font-size:0.8rem; color:#475569; margin-bottom:1.5rem; line-height:1.4;">Please enter your personal license key found inside your Etsy purchase manual to unlock your Eye Yoga setup.</p>
+            <input type="password" id="passKey" placeholder="Enter License Key..." style="text-align:center; margin-bottom:1rem;">
+            <button id="unlockBtn" style="background:#FFF; color:#000; font-weight:bold; width:100%;">VERIFY ACCESS</button>
+            <div id="gateError" style="color:#ef4444; font-size:0.85rem; margin-top:1rem; visibility:hidden;">Invalid Key. Check spelling.</div>
+            <a href="https://etsy.com" target="_blank" class="etsy-link">🛍️ Get Access Key at Our Etsy Shop</a>
+        </div>
+        <div id="appInterface" style="opacity:0.1; pointer-events:none;">
+            <h1>EYE MUSCLE RESET</h1>
+            <p class="p-desc">Keep your head completely still. Track the moving node with your eyes only to stretch stiff tracking muscles.</p>
+            <div class="control-group"><label for="themeSelect">Visual Palette</label><select id="themeSelect"><option value="bw">Minimalist Black & White</option><option value="amethyst">Amethyst Vision</option></select></div>
+            <div class="control-group"><label for="speedSlider">Tracking Speed</label><input type="range" id="speedSlider" min="1" max="5" value="2"></div>
+            <div class="canvas-container"><canvas id="visualizer" width="280" height="280"></canvas><div class="instruction-box"><div id="instruction" class="instruction">TAP START</div></div></div>
+            <div class="controls-row"><button id="playBtn">START</button><button id="soundBtn">SOUND: OFF</button></div>
+        </div>
+    </div>
     <script>
-        const canvas = document.getElementById('visualizer');
-        const ctx = canvas.getContext('2d');
-        const instructionText = document.getElementById('instruction');
-        const playBtn = document.getElementById('playBtn');
-        const soundBtn = document.getElementById('soundBtn');
-        const themeSelect = document.getElementById('themeSelect');
-        const speedSlider = document.getElementById('speedSlider');
-
-        const authGate = document.getElementById('authGate');
-        const appInterface = document.getElementById('appInterface');
-        const passKey = document.getElementById('passKey');
-        const unlockBtn = document.getElementById('unlockBtn');
-        const gateError = document.getElementById('gateError');
-
-        let isRunning = false;
-        let isSoundOn = false;
-        let animationId = null;
-        let audioCtx = null;
-        let oscillator = null;
-        let gainNode = null;
-
-        // Core Secure Lock Access Logic
-        unlockBtn.addEventListener('click', () => {
-            if (passKey.value.trim() === 'BREATHE_NOW') {
-                authGate.style.display = 'none';
-                appInterface.style.opacity = '1';
-                appInterface.style.pointerEvents = 'all';
-            } else {
-                gateError.style.visibility = 'visible';
-                passKey.value = '';
-            }
-        });
-
-        passKey.addEventListener('focus', () => {
-            gateError.style.visibility = 'hidden';
-        });
-
-        function startAudioEngine() {
-            if (audioCtx) {
-                try { audioCtx.close(); } catch(e) {}
-            }
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            oscillator = audioCtx.createOscillator();
-            gainNode = audioCtx.createGain();
-            
-            // Mobile Speaker Optimized Frequency Engine (110Hz Triangle Wave)
-            oscillator.type = 'triangle';
-            oscillator.frequency.setValueAtTime(110, audioCtx.currentTime);
-            
-            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.start();
-        }
-
-        function stopAudioEngine() {
-            if (gainNode && audioCtx) {
-                gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
-            }
-            setTimeout(() => {
-                if (!isRunning && audioCtx) {
-                    try { audioCtx.close(); } catch(e) {}
-                    audioCtx = null;
-                }
-            }, 100);
-        }
-
-        themeSelect.addEventListener('change', (e) => {
-            document.body.className = 'theme-' + e.target.value;
-        });
-
-        // Advanced Saccadic Tracking Coordinate Calculations
-        let t = 0;
-        const center = 140;
-        const size = 100; // Half-width of tracking matrix paths
-
-        function getDiamondPoint(progress) {
-            const p = progress % 1;
-            let x = center;
-            let y = center;
-
-            if (p < 0.25) {
-                // Top to Right Node Vector
-                const segP = p / 0.25;
-                x = center + (size * segP);
-                y = (center - size) + (size * segP);
-            } else if (p < 0.50) {
-                // Right to Bottom Node Vector
-                const segP = (p - 0.25) / 0.25;
-                x = (center + size) - (size * segP);
-                y = center + (size * segP);
-            } else if (p < 0.75) {
-                // Bottom to Left Node Vector
-                const segP = (p - 0.50) / 0.25;
-                x = center - (size * segP);
-                y = (center + size) - (size * segP);
-            } else {
-                // Left to Top Node Vector
-                const segP = (p - 0.75) / 0.25;
-                x = (center - size) + (size * segP);
-                y = center - (size * segP);
-            }
-            return { x, y };
-        }
-
-        playBtn.addEventListener('click', () => {
-            isRunning = !isRunning;
-            if (isRunning) {
-                playBtn.innerText = "PAUSE";
-                playBtn.classList.add('active');
-                instructionText.innerText = "TRACKING ACTIVE";
-                
-                startAudioEngine();
-                if (audioCtx && audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-                
-                animate();
-            } else {
-                playBtn.innerText = "START";
-                playBtn.classList.remove('active');
-                instructionText.innerText = "PAUSED";
-                cancelAnimationFrame(animationId);
-                stopAudioEngine();
-            }
-        });
-
-        soundBtn.addEventListener('click', () => {
-            isSoundOn = !isSoundOn;
-            soundBtn.innerText = isSoundOn ? "SOUND: ON" : "SOUND: OFF";
-            if (isSoundOn) {
-                soundBtn.classList.add('active');
-                if (isRunning && !audioCtx) startAudioEngine();
-            } else {
-                soundBtn.classList.remove('active');
-                if (gainNode && audioCtx) gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
-            }
-        });
-
-        function animate() {
-            if (!isRunning) return;
-
-            const currentStyles = getComputedStyle(document.body);
-            const lineColor = currentStyles.getPropertyValue('--accent-line').trim();
-            const glowColor = currentStyles.getPropertyValue('--accent-glow').trim();
-            const frameColor = currentStyles.getPropertyValue('--border-ui').trim();
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Increment loop time relative to user-controlled speed slider
-            const speedFactor = parseFloat(speedSlider.value) * 0.0015;
-            t += speedFactor;
-
-            // Draw Static Guideline Lattices
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = frameColor;
-            ctx.beginPath();
-            ctx.moveTo(center, center - size);
-            ctx.lineTo(center + size, center);
-            ctx.lineTo(center, center + size);
-            ctx.lineTo(center - size, center);
-            ctx.closePath();
-            ctx.stroke();
-
-            // Fetch current tracking dot vector location
-            const dot = getDiamondPoint(t);
-
-            // Audio sound engine frequency modulation (Swells tone as dot approaches coordinate boundaries)
-            if (isSoundOn && gainNode && audioCtx) {
-                const waveIntensity = Math.abs(Math.sin(t * Math.PI * 4));
-                const currentVolume = 0.05 + (waveIntensity * 0.20);
-                gainNode.gain.setTargetAtTime(currentVolume, audioCtx.currentTime, 0.02);
-            }
-
-            // Draw Somatic Node Glow Field
-            ctx.fillStyle = glowColor;
-            ctx.beginPath();
-            ctx.arc(dot.x, dot.y, 16, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Draw High-Contrast Focal Tracking Target Node
-            ctx.fillStyle = lineColor;
-            ctx.beginPath();
-            ctx.arc(dot.x, dot.y, 7, 0, Math.PI * 2);
-            ctx.fill();
-
-            animationId = requestAnimationFrame(animate);
-        }
-    </script>
-</body>
-</html>
-    <script>
-        const canvas = document.getElementById('visualizer');
-        const ctx = canvas.getContext('2d');
-        const instructionText = document.getElementById('instruction');
-        const playBtn = document.getElementById('playBtn');
-        const soundBtn = document.getElementById('soundBtn');
-        const themeSelect = document.getElementById('themeSelect');
-        const speedSlider = document.getElementById('speedSlider');
-
-        const authGate = document.getElementById('authGate');
-        const appInterface = document.getElementById('appInterface');
-        const passKey = document.getElementById('passKey');
-        const unlockBtn = document.getElementById('unlockBtn');
-        const gateError = document.getElementById('gateError');
-
-        let isRunning = false;
-        let isSoundOn = false;
-        let animationId = null;
-        let audioCtx = null;
-        let oscillator = null;
-        let gainNode = null;
-
-        // Upgraded Custom "LOOK_AWAY" Access Key Logic
-        unlockBtn.addEventListener('click', () => {
-            if (passKey.value.trim() === 'LOOK_AWAY') {
-                authGate.style.display = 'none';
-                appInterface.style.opacity = '1';
-                appInterface.style.pointerEvents = 'all';
-            } else {
-                gateError.style.visibility = 'visible';
-                passKey.value = '';
-            }
-        });
-
-        passKey.addEventListener('focus', () => {
-            gateError.style.visibility = 'hidden';
-        });
-
-        function startAudioEngine() {
-            if (audioCtx) {
-                try { audioCtx.close(); } catch(e) {}
-            }
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            oscillator = audioCtx.createOscillator();
-            gainNode = audioCtx.createGain();
-            
-            oscillator.type = 'triangle';
-            oscillator.frequency.setValueAtTime(110, audioCtx.currentTime);
-            
-            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.start();
-        }
-
-        function stopAudioEngine() {
-            if (gainNode && audioCtx) {
-                gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
-            }
-            setTimeout(() => {
-                if (!isRunning && audioCtx) {
-                    try { audioCtx.close(); } catch(e) {}
-                    audioCtx = null;
-                }
-            }, 100);
-        }
-
-        themeSelect.addEventListener('change', (e) => {
-            document.body.className = 'theme-' + e.target.value;
-        });
-
-        let t = 0;
-        const center = 140;
-        const size = 100; 
-
-        function getDiamondPoint(progress) {
-            const p = progress % 1;
-            let x = center;
-            let y = center;
-
-            if (p < 0.25) {
-                const segP = p / 0.25;
-                x = center + (size * segP);
-                y = (center - size) + (size * segP);
-            } else if (p < 0.50) {
-                const segP = (p - 0.25) / 0.25;
-                x = (center + size) - (size * segP);
-                y = center + (size * segP);
-            } else if (p < 0.75) {
-                const segP = (p - 0.50) / 0.25;
-                x = center - (size * segP);
-                y = (center + size) - (size * segP);
-            } else {
-                const segP = (p - 0.75) / 0.25;
-                x = (center - size) + (size * segP);
-                y = center - (size * segP);
-            }
-            return { x, y };
-        }
-
-        playBtn.addEventListener('click', () => {
-            isRunning = !isRunning;
-            if (isRunning) {
-                playBtn.innerText = "PAUSE";
-                playBtn.classList.add('active');
-                instructionText.innerText = "TRACKING ACTIVE";
-                
-                startAudioEngine();
-                if (audioCtx && audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-                
-                animate();
-            } else {
-                playBtn.innerText = "START";
-                playBtn.classList.remove('active');
-                instructionText.innerText = "PAUSED";
-                cancelAnimationFrame(animationId);
-                stopAudioEngine();
-            }
-        });
-
-        soundBtn.addEventListener('click', () => {
-            isSoundOn = !isSoundOn;
-            soundBtn.innerText = isSoundOn ? "SOUND: ON" : "SOUND: OFF";
-            if (isSoundOn) {
-                soundBtn.classList.add('active');
-                if (isRunning && !audioCtx) startAudioEngine();
-            } else {
-                soundBtn.classList.remove('active');
-                if (gainNode && audioCtx) gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
-            }
-        });
-
-        function animate() {
-            if (!isRunning) return;
-
-            const currentStyles = getComputedStyle(document.body);
-            const lineColor = currentStyles.getPropertyValue('--accent-line').trim();
-            const glowColor = currentStyles.getPropertyValue('--accent-glow').trim();
-            const frameColor = currentStyles.getPropertyValue('--border-ui').trim();
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            const speedFactor = parseFloat(speedSlider.value) * 0.0015;
-            t += speedFactor;
-
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = frameColor;
-            ctx.beginPath();
-            ctx.moveTo(center, center - size);
-            ctx.lineTo(center + size, center);
-            ctx.lineTo(center, center + size);
-            ctx.lineTo(center - size, center);
-            ctx.closePath();
-            ctx.stroke();
-
-            const dot = getDiamondPoint(t);
-
-            if (isSoundOn && gainNode && audioCtx) {
-                const waveIntensity = Math.abs(Math.sin(t * Math.PI * 4));
-                const currentVolume = 0.05 + (waveIntensity * 0.20);
-                gainNode.gain.setTargetAtTime(currentVolume, audioCtx.currentTime, 0.02);
-            }
-
-            ctx.fillStyle = glowColor;
-            ctx.beginPath();
-            ctx.arc(dot.x, dot.y, 16, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = lineColor;
-            ctx.beginPath();
-            ctx.arc(dot.x, dot.y, 7, 0, Math.PI * 2);
-            ctx.fill();
-
-            animationId = requestAnimationFrame(animate);
-        }
+        const canvas=document.getElementById('visualizer'),ctx=canvas.getContext('2d'),instructionText=document.getElementById('instruction'),playBtn=document.getElementById('playBtn'),soundBtn=document.getElementById('soundBtn'),themeSelect=document.getElementById('themeSelect'),speedSlider=document.getElementById('speedSlider'),authGate=document.getElementById('authGate'),appInterface=document.getElementById('appInterface'),passKey=document.getElementById('passKey'),unlockBtn=document.getElementById('unlockBtn'),gateError=document.getElementById('gateError');
+        let isRunning=false,isSoundOn=false,animationId=null,audioCtx=null,oscillator=null,gainNode=null,t=0;const center=140,size=100;
+        unlockBtn.addEventListener('click',()=>{if(passKey.value.trim()==='LOOK_AWAY'){authGate.style.display='none';appInterface.style.opacity='1';appInterface.style.pointerEvents='all';}else{gateError.style.visibility='visible';passKey.value='';}});
+        passKey.addEventListener('focus',()=>{gateError.style.visibility='hidden';});
+        function startAudioEngine(){if(audioCtx){try{audioCtx.close();}catch(e){}}audioCtx=new(window.AudioContext||window.webkitAudioContext)();oscillator=audioCtx.createOscillator();gainNode=audioCtx.createGain();oscillator.type='triangle';oscillator.frequency.setValueAtTime(110,audioCtx.currentTime);gainNode.gain.setValueAtTime(0,audioCtx.currentTime);oscillator.connect(gainNode);gainNode.connect(audioCtx.destination);oscillator.start();}
+        function stopAudioEngine(){if(gainNode&&audioCtx){gainNode.gain.setTargetAtTime(0,audioCtx.currentTime,0.05);}setTimeout(()=>{if(!isRunning&&audioCtx){try{audioCtx.close();}catch(e){}audioCtx=null;}},100);}
+        themeSelect.addEventListener('change',(e)=>{document.body.className='theme-'+e.target.value;});
+        function getDiamondPoint(progress){const p=progress%1;let x=center,y=center;if(p<0.25){const segP=p/0.25;x=center+(size*segP);y=(center-size)+(size*segP);}else if(p<0.50){const segP=(p-0.25)/0.25;x=(center+size)-(size*segP);y=center+(size*segP);}else if(p<0.75){const segP=(p-0.50)/0.25;x=center-(size*segP);y=(center+size)-(size*segP);}else{const segP=(p-0.75)/0.25;x=(center-size)+(size*segP);y=center-(size*segP);}return{x,y};}
+        playBtn.addEventListener('click',()=>{isRunning=!isRunning;if(isRunning){playBtn.innerText="PAUSE";playBtn.classList.add('active');instructionText.innerText="TRACKING ACTIVE";startAudioEngine();if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();animate();}else{playBtn.innerText="START";playBtn.classList.remove('active');instructionText.innerText="PAUSED";cancelAnimationFrame(animationId);stopAudioEngine();}});
+        soundBtn.addEventListener('click',()=>{isSoundOn=!isSoundOn;soundBtn.innerText=isSoundOn?"SOUND: ON":"SOUND: OFF";if(isSoundOn){soundBtn.classList.add('active');if(isRunning&&!audioCtx)startAudioEngine();}else{soundBtn.classList.remove('active');if(gainNode&&audioCtx)gainNode.gain.setTargetAtTime(0,audioCtx.currentTime,0.05);}});
+        function animate(){if(!isRunning)return;const currentStyles=getComputedStyle(document.body),lineColor=currentStyles.getPropertyValue('--accent-line').trim(),glowColor=currentStyles.getPropertyValue('--accent-glow').trim(),frameColor=currentStyles.getPropertyValue('--border-ui').trim();ctx.clearRect(0,0,canvas.width,canvas.height);t+=parseFloat(speedSlider.value)*0.0015;ctx.lineWidth=1;ctx.strokeStyle=frameColor;ctx.beginPath();ctx.moveTo(center,center-size);ctx.lineTo(center+size,center);ctx.lineTo(center,center+size);ctx.lineTo(center-size,center);ctx.closePath();ctx.stroke();const dot=getDiamondPoint(t);if(isSoundOn&&gainNode&&audioCtx){gainNode.gain.setTargetAtTime(0.05+(Math.abs(Math.sin(t*Math.PI*4))*0.20),audioCtx.currentTime,0.02);}ctx.fillStyle=glowColor;ctx.beginPath();ctx.arc(dot.x,dot.y,16,0,Math.PI*2);ctx.fill();ctx.fillStyle=lineColor;ctx.beginPath();ctx.arc(dot.x,dot.y,7,0,Math.PI*2);ctx.fill();animationId=requestAnimationFrame(animate);}
     </script>
 </body>
 </html>
