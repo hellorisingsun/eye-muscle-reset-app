@@ -1,0 +1,372 @@
+    <script>
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
+        const instructionText = document.getElementById('instruction');
+        const playBtn = document.getElementById('playBtn');
+        const soundBtn = document.getElementById('soundBtn');
+        const themeSelect = document.getElementById('themeSelect');
+        const speedSlider = document.getElementById('speedSlider');
+
+        const authGate = document.getElementById('authGate');
+        const appInterface = document.getElementById('appInterface');
+        const passKey = document.getElementById('passKey');
+        const unlockBtn = document.getElementById('unlockBtn');
+        const gateError = document.getElementById('gateError');
+
+        let isRunning = false;
+        let isSoundOn = false;
+        let animationId = null;
+        let audioCtx = null;
+        let oscillator = null;
+        let gainNode = null;
+
+        // Core Secure Lock Access Logic
+        unlockBtn.addEventListener('click', () => {
+            if (passKey.value.trim() === 'BREATHE_NOW') {
+                authGate.style.display = 'none';
+                appInterface.style.opacity = '1';
+                appInterface.style.pointerEvents = 'all';
+            } else {
+                gateError.style.visibility = 'visible';
+                passKey.value = '';
+            }
+        });
+
+        passKey.addEventListener('focus', () => {
+            gateError.style.visibility = 'hidden';
+        });
+
+        function startAudioEngine() {
+            if (audioCtx) {
+                try { audioCtx.close(); } catch(e) {}
+            }
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            oscillator = audioCtx.createOscillator();
+            gainNode = audioCtx.createGain();
+            
+            // Mobile Speaker Optimized Frequency Engine (110Hz Triangle Wave)
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(110, audioCtx.currentTime);
+            
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+        }
+
+        function stopAudioEngine() {
+            if (gainNode && audioCtx) {
+                gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+            }
+            setTimeout(() => {
+                if (!isRunning && audioCtx) {
+                    try { audioCtx.close(); } catch(e) {}
+                    audioCtx = null;
+                }
+            }, 100);
+        }
+
+        themeSelect.addEventListener('change', (e) => {
+            document.body.className = 'theme-' + e.target.value;
+        });
+
+        // Advanced Saccadic Tracking Coordinate Calculations
+        let t = 0;
+        const center = 140;
+        const size = 100; // Half-width of tracking matrix paths
+
+        function getDiamondPoint(progress) {
+            const p = progress % 1;
+            let x = center;
+            let y = center;
+
+            if (p < 0.25) {
+                // Top to Right Node Vector
+                const segP = p / 0.25;
+                x = center + (size * segP);
+                y = (center - size) + (size * segP);
+            } else if (p < 0.50) {
+                // Right to Bottom Node Vector
+                const segP = (p - 0.25) / 0.25;
+                x = (center + size) - (size * segP);
+                y = center + (size * segP);
+            } else if (p < 0.75) {
+                // Bottom to Left Node Vector
+                const segP = (p - 0.50) / 0.25;
+                x = center - (size * segP);
+                y = (center + size) - (size * segP);
+            } else {
+                // Left to Top Node Vector
+                const segP = (p - 0.75) / 0.25;
+                x = (center - size) + (size * segP);
+                y = center - (size * segP);
+            }
+            return { x, y };
+        }
+
+        playBtn.addEventListener('click', () => {
+            isRunning = !isRunning;
+            if (isRunning) {
+                playBtn.innerText = "PAUSE";
+                playBtn.classList.add('active');
+                instructionText.innerText = "TRACKING ACTIVE";
+                
+                startAudioEngine();
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                
+                animate();
+            } else {
+                playBtn.innerText = "START";
+                playBtn.classList.remove('active');
+                instructionText.innerText = "PAUSED";
+                cancelAnimationFrame(animationId);
+                stopAudioEngine();
+            }
+        });
+
+        soundBtn.addEventListener('click', () => {
+            isSoundOn = !isSoundOn;
+            soundBtn.innerText = isSoundOn ? "SOUND: ON" : "SOUND: OFF";
+            if (isSoundOn) {
+                soundBtn.classList.add('active');
+                if (isRunning && !audioCtx) startAudioEngine();
+            } else {
+                soundBtn.classList.remove('active');
+                if (gainNode && audioCtx) gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+            }
+        });
+
+        function animate() {
+            if (!isRunning) return;
+
+            const currentStyles = getComputedStyle(document.body);
+            const lineColor = currentStyles.getPropertyValue('--accent-line').trim();
+            const glowColor = currentStyles.getPropertyValue('--accent-glow').trim();
+            const frameColor = currentStyles.getPropertyValue('--border-ui').trim();
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Increment loop time relative to user-controlled speed slider
+            const speedFactor = parseFloat(speedSlider.value) * 0.0015;
+            t += speedFactor;
+
+            // Draw Static Guideline Lattices
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = frameColor;
+            ctx.beginPath();
+            ctx.moveTo(center, center - size);
+            ctx.lineTo(center + size, center);
+            ctx.lineTo(center, center + size);
+            ctx.lineTo(center - size, center);
+            ctx.closePath();
+            ctx.stroke();
+
+            // Fetch current tracking dot vector location
+            const dot = getDiamondPoint(t);
+
+            // Audio sound engine frequency modulation (Swells tone as dot approaches coordinate boundaries)
+            if (isSoundOn && gainNode && audioCtx) {
+                const waveIntensity = Math.abs(Math.sin(t * Math.PI * 4));
+                const currentVolume = 0.05 + (waveIntensity * 0.20);
+                gainNode.gain.setTargetAtTime(currentVolume, audioCtx.currentTime, 0.02);
+            }
+
+            // Draw Somatic Node Glow Field
+            ctx.fillStyle = glowColor;
+            ctx.beginPath();
+            ctx.arc(dot.x, dot.y, 16, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw High-Contrast Focal Tracking Target Node
+            ctx.fillStyle = lineColor;
+            ctx.beginPath();
+            ctx.arc(dot.x, dot.y, 7, 0, Math.PI * 2);
+            ctx.fill();
+
+            animationId = requestAnimationFrame(animate);
+        }
+    </script>
+</body>
+</html>
+    <script>
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
+        const instructionText = document.getElementById('instruction');
+        const playBtn = document.getElementById('playBtn');
+        const soundBtn = document.getElementById('soundBtn');
+        const themeSelect = document.getElementById('themeSelect');
+        const speedSlider = document.getElementById('speedSlider');
+
+        const authGate = document.getElementById('authGate');
+        const appInterface = document.getElementById('appInterface');
+        const passKey = document.getElementById('passKey');
+        const unlockBtn = document.getElementById('unlockBtn');
+        const gateError = document.getElementById('gateError');
+
+        let isRunning = false;
+        let isSoundOn = false;
+        let animationId = null;
+        let audioCtx = null;
+        let oscillator = null;
+        let gainNode = null;
+
+        // Upgraded Custom "LOOK_AWAY" Access Key Logic
+        unlockBtn.addEventListener('click', () => {
+            if (passKey.value.trim() === 'LOOK_AWAY') {
+                authGate.style.display = 'none';
+                appInterface.style.opacity = '1';
+                appInterface.style.pointerEvents = 'all';
+            } else {
+                gateError.style.visibility = 'visible';
+                passKey.value = '';
+            }
+        });
+
+        passKey.addEventListener('focus', () => {
+            gateError.style.visibility = 'hidden';
+        });
+
+        function startAudioEngine() {
+            if (audioCtx) {
+                try { audioCtx.close(); } catch(e) {}
+            }
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            oscillator = audioCtx.createOscillator();
+            gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(110, audioCtx.currentTime);
+            
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+        }
+
+        function stopAudioEngine() {
+            if (gainNode && audioCtx) {
+                gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+            }
+            setTimeout(() => {
+                if (!isRunning && audioCtx) {
+                    try { audioCtx.close(); } catch(e) {}
+                    audioCtx = null;
+                }
+            }, 100);
+        }
+
+        themeSelect.addEventListener('change', (e) => {
+            document.body.className = 'theme-' + e.target.value;
+        });
+
+        let t = 0;
+        const center = 140;
+        const size = 100; 
+
+        function getDiamondPoint(progress) {
+            const p = progress % 1;
+            let x = center;
+            let y = center;
+
+            if (p < 0.25) {
+                const segP = p / 0.25;
+                x = center + (size * segP);
+                y = (center - size) + (size * segP);
+            } else if (p < 0.50) {
+                const segP = (p - 0.25) / 0.25;
+                x = (center + size) - (size * segP);
+                y = center + (size * segP);
+            } else if (p < 0.75) {
+                const segP = (p - 0.50) / 0.25;
+                x = center - (size * segP);
+                y = (center + size) - (size * segP);
+            } else {
+                const segP = (p - 0.75) / 0.25;
+                x = (center - size) + (size * segP);
+                y = center - (size * segP);
+            }
+            return { x, y };
+        }
+
+        playBtn.addEventListener('click', () => {
+            isRunning = !isRunning;
+            if (isRunning) {
+                playBtn.innerText = "PAUSE";
+                playBtn.classList.add('active');
+                instructionText.innerText = "TRACKING ACTIVE";
+                
+                startAudioEngine();
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                
+                animate();
+            } else {
+                playBtn.innerText = "START";
+                playBtn.classList.remove('active');
+                instructionText.innerText = "PAUSED";
+                cancelAnimationFrame(animationId);
+                stopAudioEngine();
+            }
+        });
+
+        soundBtn.addEventListener('click', () => {
+            isSoundOn = !isSoundOn;
+            soundBtn.innerText = isSoundOn ? "SOUND: ON" : "SOUND: OFF";
+            if (isSoundOn) {
+                soundBtn.classList.add('active');
+                if (isRunning && !audioCtx) startAudioEngine();
+            } else {
+                soundBtn.classList.remove('active');
+                if (gainNode && audioCtx) gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+            }
+        });
+
+        function animate() {
+            if (!isRunning) return;
+
+            const currentStyles = getComputedStyle(document.body);
+            const lineColor = currentStyles.getPropertyValue('--accent-line').trim();
+            const glowColor = currentStyles.getPropertyValue('--accent-glow').trim();
+            const frameColor = currentStyles.getPropertyValue('--border-ui').trim();
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const speedFactor = parseFloat(speedSlider.value) * 0.0015;
+            t += speedFactor;
+
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = frameColor;
+            ctx.beginPath();
+            ctx.moveTo(center, center - size);
+            ctx.lineTo(center + size, center);
+            ctx.lineTo(center, center + size);
+            ctx.lineTo(center - size, center);
+            ctx.closePath();
+            ctx.stroke();
+
+            const dot = getDiamondPoint(t);
+
+            if (isSoundOn && gainNode && audioCtx) {
+                const waveIntensity = Math.abs(Math.sin(t * Math.PI * 4));
+                const currentVolume = 0.05 + (waveIntensity * 0.20);
+                gainNode.gain.setTargetAtTime(currentVolume, audioCtx.currentTime, 0.02);
+            }
+
+            ctx.fillStyle = glowColor;
+            ctx.beginPath();
+            ctx.arc(dot.x, dot.y, 16, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = lineColor;
+            ctx.beginPath();
+            ctx.arc(dot.x, dot.y, 7, 0, Math.PI * 2);
+            ctx.fill();
+
+            animationId = requestAnimationFrame(animate);
+        }
+    </script>
+</body>
+</html>
